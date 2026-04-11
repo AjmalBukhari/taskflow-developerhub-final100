@@ -7,15 +7,19 @@ import {
   deleteTask,
 } from "../controllers/taskController.js";
 
+import { validate } from "../middleware/validateMiddleware.js";
+import { taskSchema } from "../validators/taskValidator.js";
+import { protect } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
 router.route("/")
-  .post(createTask)
-  .get(getTasks);
+  .post(protect, validate(taskSchema), createTask)
+  .get(protect, getTasks);
 
 router.route("/:id")
-  .get(getTaskById)
-  .put(updateTask)
-  .delete(deleteTask);
+  .get(protect, getTaskById)
+  .put(protect, validate(taskSchema), updateTask)
+  .delete(protect, deleteTask);
 
 export default router;

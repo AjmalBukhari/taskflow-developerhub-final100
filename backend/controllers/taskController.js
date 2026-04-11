@@ -1,86 +1,101 @@
 import Task from "../models/Task.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 
 // Create Task
-export const createTask = async (req, res) => {
-  try {
-    const { title, description, status, dueDate } = req.body;
+export const createTask = asyncHandler(async (req, res) => {
+  const { title, description, status, dueDate } = req.body;
 
-    if (!title) {
-      return res.status(400).json({ message: "Title is required" });
-    }
+  const task = await Task.create({
+    title,
+    description,
+    status,
+    dueDate,
+    user: req.user._id,
+  });
 
-    const task = new Task({
-      title,
-      description,
-      status,
-      dueDate,
-    });
-
-    const createdTask = await task.save();
-    res.status(201).json(createdTask);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  res.status(201).json(task);
+});
 
 // Get All Tasks
-export const getTasks = async (req, res) => {
-  try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
-    res.json(tasks);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+export const getTasks = asyncHandler(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 5;
+
+  const keyword = req.query.keyword
+    ? {
+        $or: [
+          { title: { $regex: req.query.keyword, $options: "i" } },
+          { description: { $regex: req.query.keyword, $options: "i" } },
+        ],
+      }
+    : {};
+
+  const statusFilter = req.query.status
+    ? { status: req.query.status }
+    : {};
+
+  const query = {
+    user: req.user._id,
+    ...keyword,
+    ...statusFilter,
+  };
+
+  const count = await Task.countDocuments(query);
+
+  const tasks = await Task.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .skip(limit * (page - 1));
+
+  res.json({
+    tasks,
+    page,
+    pages: Math.ceil(count / limit),
+    total: count,
+  });
+});
 
 // Get Single Task
-export const getTaskById = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
+export const getTaskById = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
 
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    res.json(task);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!task) {
+    res.status(404);
+    throw new Error("Task not found");
   }
-};
+
+  res.json(task);
+});
 
 // Update Task
-export const updateTask = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
+export const updateTask = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
 
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    task.title = req.body.title || task.title;
-    task.description = req.body.description || task.description;
-    task.status = req.body.status || task.status;
-    task.dueDate = req.body.dueDate || task.dueDate;
-
-    const updatedTask = await task.save();
-    res.json(updatedTask);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!task) {
+    res.status(404);
+    throw new Error("Task not found");
   }
-};
+
+  const updatedTask = await Task.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  );
+
+  res.json(updatedTask);
+});
 
 // Delete Task
-export const deleteTask = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
+export const deleteTask = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
 
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    await task.deleteOne();
-    res.json({ message: "Task removed" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!task) {
+    res.status(404);
+    throw new Error("Task not found");
   }
-};
+
+  await task.deleteOne();
+
+  res.json({ message: "Task removed" });
+});
+
