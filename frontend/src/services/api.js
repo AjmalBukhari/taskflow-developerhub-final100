@@ -1,10 +1,82 @@
 import axios from 'axios';
 
+// ================= BASE INSTANCE =================
 const API = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
 
-export const getAllTasks = () => API.get('/tasks');
-export const createTask = (data) => API.post('/tasks', data);
-export const updateTask = (id, data) => API.put(`/tasks/${id}`, data);
-export const deleteTask = (id) => API.delete(`/tasks/${id}`);
+// ================= REQUEST INTERCEPTOR =================
+// Attach JWT token automatically
+API.interceptors.request.use((req) => {
+  const token = localStorage.getItem('token');
+
+  if (token) {
+    req.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return req;
+});
+
+// ================= RESPONSE INTERCEPTOR =================
+// Optional: global error handling
+API.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      window.location.reload();
+    }
+    return Promise.reject(err);
+  }
+);
+
+// ================= AUTH =================
+export const registerUser = (data) =>
+  API.post('/auth/register', data);
+
+export const loginUser = (data) =>
+  API.post('/auth/login', data);
+
+export const getProfile = () => 
+  API.get('/auth/me');
+export const updateProfile = (data) => 
+  API.put('/auth/me', data);
+
+// ================= TASKS =================
+
+// Get all tasks (with search + filter)
+export const getAllTasks = (params) =>
+  API.get('/tasks', { params });
+
+// Get single task
+export const getTask = (id) =>
+  API.get(`/tasks/${id}`);
+
+// Create task
+export const createTask = (data) =>
+  API.post('/tasks', data);
+
+// Update task
+export const updateTask = (id, data) =>
+  API.put(`/tasks/${id}`, data);
+
+// Soft delete (move to bin)
+export const deleteTask = (id) =>
+  API.delete(`/tasks/${id}`);
+
+// ================= BIN TASKS =================
+
+// Get deleted tasks
+export const getBinTasks = () =>
+  API.get('/tasks/bin');
+
+// Restore task
+export const restoreTask = (id) =>
+  API.put(`/tasks/restore/${id}`);
+
+// Permanently delete
+export const permanentDeleteTask = (id) =>
+  API.delete(`/tasks/permanent/${id}`);
+
+export default API;

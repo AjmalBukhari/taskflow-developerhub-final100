@@ -16,6 +16,32 @@ const taskSchema = new mongoose.Schema({
     enum: ['Pending', 'In Progress', 'Completed'],
     default: 'Pending'
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
+  priority: {
+    type: String,
+    default: 'Low',
+  },
+  pinned: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+    default: null,
+    index: { expires: '7d' } // auto delete after 7 days
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   dueDate: Date
 }, { timestamps: true });
 

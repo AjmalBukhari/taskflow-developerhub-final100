@@ -1,75 +1,174 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { createTask, updateTask } from '../services/api';
 
-export default function TaskForm({ task, onClose, onSaved }) {
+export default function TaskForm({ task, onClose, onSaved, showToast }) {
+
   const [form, setForm] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
-    status: task?.status || 'Pending',
-    dueDate: task?.dueDate?.slice(0, 10) || '',
+    title: '',
+    description: '',
+    status: 'Pending',
+    priority: 'Low',
+    dueDate: '',
+    pinned: false
   });
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!form.title.trim()) return alert('Title required');
-
+  // ================= PREFILL (EDIT MODE) =================
+  useEffect(() => {
     if (task) {
-      await updateTask(task._id, form);
-    } else {
-      await createTask(form);
+      setForm({
+        title: task.title || '',
+        description: task.description || '',
+        status: task.status || 'Pending',
+        priority: task.priority || 'Low',
+        dueDate: task.dueDate?.slice(0, 10) || '',
+        pinned: task.pinned || false
+      });
+    }
+  }, [task]);
+
+  // ================= HANDLE INPUT =================
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    setForm({
+      ...form,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // ================= SUBMIT =================
+  const handleSubmit = async () => {
+    if (!form.title.trim()) {
+      return showToast('Title is required', 'warning');
     }
 
-    onSaved();
+    try {
+      setLoading(true);
+
+      if (task) {
+        await updateTask(task._id, form);
+        showToast('Task updated');
+      } else {
+        await createTask(form);
+        showToast('Task created');
+      }
+
+      onSaved();
+
+    } catch (err) {
+      showToast(
+        err.response?.data?.message || 'Error saving task',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="bg-white p-4 rounded shadow mb-4">
-      <input
-        name="title"
-        value={form.title}
-        onChange={handleChange}
-        placeholder="Title"
-        className="border p-2 w-full mb-2"
-      />
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="bg-white p-5 rounded-xl shadow-sm border max-w-xl mx-auto"
+    >
 
-      <textarea
-        name="description"
-        value={form.description}
-        onChange={handleChange}
-        placeholder="Description"
-        className="border p-2 w-full mb-2"
-      />
+      {/* TITLE */}
+      <h2 className="text-lg font-semibold mb-4">
+        {task ? 'Edit Task' : 'Add New Task'}
+      </h2>
 
-      <select
-        name="status"
-        value={form.status}
-        onChange={handleChange}
-        className="border p-2 w-full mb-2"
-      >
-        <option>Pending</option>
-        <option>In Progress</option>
-        <option>Completed</option>
-      </select>
+      <div className="space-y-3">
 
-      <input
-        type="date"
-        name="dueDate"
-        value={form.dueDate}
-        onChange={handleChange}
-        className="border p-2 w-full mb-2"
-      />
+        {/* TITLE INPUT */}
+        <input
+          name="title"
+          placeholder="Task title"
+          value={form.title}
+          onChange={handleChange}
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
 
-      <div className="flex gap-2">
-        <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded">
-          {task ? 'Update' : 'Create'}
-        </button>
+        {/* DESCRIPTION */}
+        <textarea
+          name="description"
+          placeholder="Description"
+          value={form.description}
+          onChange={handleChange}
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
 
-        <button onClick={onClose} className="border px-4 py-2 rounded">
-          Cancel
-        </button>
+        {/* STATUS + PRIORITY */}
+        <div className="grid grid-cols-2 gap-3">
+          <select
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            className="border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+          >
+            <option>Pending</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+
+          <select
+            name="priority"
+            value={form.priority}
+            onChange={handleChange}
+            className="border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+          >
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </div>
+
+        {/* DATE */}
+        <input
+          type="date"
+          name="dueDate"
+          value={form.dueDate}
+          onChange={handleChange}
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+        />
+
+        {/* PIN */}
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            name="pinned"
+            checked={form.pinned}
+            onChange={handleChange}
+          />
+          Pin this task
+        </label>
+
+        {/* ACTIONS */}
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition disabled:opacity-50"
+          >
+            {loading
+              ? 'Saving...'
+              : task
+                ? 'Update'
+                : 'Create'}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="border px-4 py-2 rounded hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        </div>
+
       </div>
-    </div>
+    </motion.div>
   );
 }

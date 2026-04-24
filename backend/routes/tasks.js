@@ -4,23 +4,49 @@ const router = express.Router();
 const Task = require('../models/Task');
 const { validateTask, handleValidation } = require('../middleware/validate');
 
+const auth = require('../middleware/auth');
+
 
 // ================= CREATE TASK =================
-router.post('/', validateTask, handleValidation, async (req, res) => {
+router.post('/', auth, validateTask, handleValidation, async (req, res) => {
   try {
-    const task = await Task.create(req.body);
+    const task = await Task.create({
+      ...req.body,
+      user: req.user.id
+    });
     res.status(201).json(task);
+
+    const { search, status } = req.query;
+
+    const filter = { user: req.user.id, isDeleted: false };
+
+    // Filter by status
+    if (status) {
+      filter.status = status;
+    }
+
+    // Search by title or description
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+
+    res.json(tasks);
   } catch (err) {
     res.status(500).json({
       message: 'Server error',
-      error: err.message,
+      error: err.message
     });
   }
 });
 
 
 // ================= GET ALL TASKS =================
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 });
     res.json(tasks);
@@ -34,9 +60,13 @@ router.get('/', async (req, res) => {
 
 
 // ================= GET SINGLE TASK =================
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -53,7 +83,7 @@ router.get('/:id', async (req, res) => {
 
 
 // ================= UPDATE TASK =================
-router.put('/:id', validateTask, handleValidation, async (req, res) => {
+router.put('/:id', auth, validateTask, handleValidation, async (req, res) => {
   try {
     const task = await Task.findByIdAndUpdate(
       req.params.id,
@@ -76,7 +106,67 @@ router.put('/:id', validateTask, handleValidation, async (req, res) => {
 
 
 // ================= DELETE TASK =================
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.isDeleted = true;
+    task.deletedAt = new Date();
+
+    await task.save();
+
+    res.json({ message: 'Task moved to bin' });
+
+  } catch (err) {
+    res.status(500).json({
+      message: 'Server error',
+      error: err.message
+    });
+  }
+});
+
+// ================= GET DELETED TASKS =================
+router.get('/bin', auth, async (req, res) => {
+  const tasks = await Task.find({
+    user: req.user.id,
+    isDeleted: true
+  });
+
+  res.json(tasks);
+});
+
+
+// PUT /api/tasks/restore/:id
+router.put('/restore/:id', auth, async (req, res) => {
+  try {
+    const task = await Task.findOne({
+      _id: req.params.id,
+      user: req.user.id
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.isDeleted = false;
+    task.deletedAt = null;
+
+    await task.save();
+
+    res.json({ message: 'Task restored' });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// DELETE /api/tasks/permanent/:id
+router.delete('/permanent/:id', auth, async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
 
@@ -84,14 +174,13 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    res.json({ message: 'Task deleted successfully' });
+    res.json({ message: 'Task permanently deleted' });
+
   } catch (err) {
-    res.status(500).json({
-      message: 'Server error',
-      error: err.message,
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 module.exports = router;
