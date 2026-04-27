@@ -121,6 +121,7 @@ export default function Account({ showToast, onLogout }) {
           onChange={handleChange}
           placeholder="Email"
           className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+          disabled
         />
 
         <input

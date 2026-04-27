@@ -28,17 +28,32 @@ router.post('/', auth, validateTask, handleValidation, async (req, res) => {
 // ================= GET ALL TASKS =================
 router.get('/', auth, async (req, res) => {
   try {
-    const tasks = await Task.find({
+    const { search, status } = req.query;
+
+    const filter = {
       user: req.user.id,
       isDeleted: false
-    }).sort({ createdAt: -1 });
+    };
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const tasks = await Task.find(filter).sort({ createdAt: -1 });
 
     res.json(tasks);
 
   } catch (err) {
     res.status(500).json({
       message: 'Server error',
-      error: err.message,
+      error: err.message
     });
   }
 });

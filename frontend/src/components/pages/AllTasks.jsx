@@ -5,6 +5,7 @@ import { getAllTasks, deleteTask } from "../../services/api";
 import SearchBar from "../SearchBar";
 import TaskForm from "../TaskForm";
 
+
 export default function AllTasks({ showToast }) {
   const [tasks, setTasks] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -12,6 +13,9 @@ export default function AllTasks({ showToast }) {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 7;
 
   // ================= FETCH =================
   const fetchTasks = useCallback(async () => {
@@ -30,18 +34,25 @@ export default function AllTasks({ showToast }) {
     fetchTasks();
   }, [fetchTasks]);
 
+  // ✅ Reset page on filter/search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, status]);
+
   // ================= SELECTION =================
   const toggleSelect = (id) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : [...prev, id]
     );
   };
 
   const selectAll = () => {
-    if (selected.length === tasks.length) {
+    if (selected.length === currentTasks.length) {
       setSelected([]);
     } else {
-      setSelected(tasks.map((t) => t._id));
+      setSelected(currentTasks.map((t) => t._id));
     }
   };
 
@@ -68,9 +79,22 @@ export default function AllTasks({ showToast }) {
     fetchTasks();
   };
 
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+  // ================= PAGINATION =================
+  const sortedTasks = [...tasks].sort((a, b) => b.pinned - a.pinned);
 
+  const indexOfLast = currentPage * tasksPerPage;
+  const indexOfFirst = indexOfLast - tasksPerPage;
+  const currentTasks = sortedTasks.slice(indexOfFirst, indexOfLast);
+
+  const totalPages = Math.ceil(tasks.length / tasksPerPage);
+
+  // ================= UI =================
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-5"
+    >
       <SearchBar onSearch={setSearch} onFilter={setStatus} />
 
       <div className="bg-white rounded-xl shadow-sm p-4">
@@ -100,19 +124,25 @@ export default function AllTasks({ showToast }) {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <input
                 type="checkbox"
-                checked={tasks.length > 0 && selected.length === tasks.length}
+                checked={
+                  currentTasks.length > 0 &&
+                  selected.length === currentTasks.length
+                }
                 onChange={selectAll}
               />
-              Select All
+              Select Page
             </div>
 
-            {tasks.map((task) => (
+            {currentTasks.map((task) => (
               <motion.div
                 key={task._id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex justify-between items-center border p-3 rounded-lg"
+                className={`flex justify-between items-center border p-3 rounded-lg
+                  ${task.pinned ? "bg-yellow-50 border-yellow-200" : ""}
+                `}
               >
+
                 {/* LEFT */}
                 <div className="flex items-start gap-3">
                   <input
@@ -121,9 +151,22 @@ export default function AllTasks({ showToast }) {
                     onChange={() => toggleSelect(task._id)}
                   />
 
-                  <div>
-                    <h4 className="font-medium">{task.title}</h4>
-                    <p className="text-xs text-gray-500">{task.description}</p>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+
+                      {task.pinned && (
+                        <span className="text-yellow-500">📌</span>
+                      )}
+
+                      <h4 onClick={() => setEditingTask(task)} className={`font-medium ${task.pinned ? "text-indigo-600" : ""}`}>
+                        {task.title}
+                      </h4>
+
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      {task.description}
+                    </p>
                   </div>
                 </div>
 
@@ -135,8 +178,8 @@ export default function AllTasks({ showToast }) {
                       ? "bg-green-100 text-green-700"
                       : task.status === "In Progress"
                       ? "bg-blue-100 text-blue-700"
-                      : "bg-yellow-100 text-yellow-700"}`}
-                  >
+                      : "bg-yellow-100 text-yellow-700"}
+                  `}>
                     {task.status}
                   </span>
 
@@ -154,8 +197,34 @@ export default function AllTasks({ showToast }) {
                     Delete
                   </button>
                 </div>
+
               </motion.div>
             ))}
+
+            {/* PAGINATION */}
+            <div className="flex justify-between items-center mt-4">
+
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              <span className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+
+            </div>
 
           </div>
         )}
@@ -183,7 +252,6 @@ export default function AllTasks({ showToast }) {
           </motion.div>
         </div>
       )}
-
     </motion.div>
   );
 }

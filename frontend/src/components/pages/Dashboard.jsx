@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 
 import { getAllTasks } from "../../services/api";
 import ProgressBar from "../ProgressBar";
 
-export default function Dashboard({ showToast }) {
+export default function Dashboard({ showToast, onChange }) {
   const [tasks, setTasks] = useState([]);
-  const navigate = useNavigate();
+
 
   // ================= FETCH =================
   const fetchTasks = useCallback(async () => {
@@ -67,7 +66,7 @@ export default function Dashboard({ showToast }) {
             <span className="text-xs text-gray-500">{task.status}</span>
           </div>
         ))}
-        <button onClick={() => navigate("/tasks")} className="border px-2 py-2 rounded m-3">See All Tasks</button>
+        <button onClick={() => onChange('All Tasks')} className="border px-3 py-2 rounded m-3 hover:bg-gray-100 transition">See All Tasks</button>
       </div>
     </motion.div>
   );

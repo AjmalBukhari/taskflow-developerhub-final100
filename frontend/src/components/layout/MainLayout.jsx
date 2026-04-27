@@ -1,33 +1,27 @@
-import { useState } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import { motion } from 'framer-motion';
-
+import { useState } from "react";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+import { motion } from "framer-motion";
 
 export default function MainLayout({ children, onSearch, onLogout }) {
-  const [activeMenu, setActiveMenu] = useState('Dashboard');
+  const [activeMenu, setActiveMenu] = useState("Dashboard");
 
   return (
     <div className="flex h-screen bg-gray-50">
-
       {/* ================= LEFT SIDEBAR ================= */}
-      <Sidebar
-        active={activeMenu}
-        onChange={(menu) => setActiveMenu(menu)}
-      />
+      <Sidebar active={activeMenu} onChange={(menu) => setActiveMenu(menu)} />
 
       {/* ================= RIGHT PANEL ================= */}
       <div className="flex-1 flex flex-col">
-
         {/* HEADER */}
         <Header
           onSearch={onSearch}
           onLogout={onLogout}
+          onNavigate={(menu) => setActiveMenu(menu)}
         />
 
         {/* CONTENT */}
         <main className="flex-1 overflow-y-auto p-6">
-
           <motion.div
             key={activeMenu}
             initial={{ opacity: 0, y: 10 }}
@@ -39,14 +33,12 @@ export default function MainLayout({ children, onSearch, onLogout }) {
               children should be controlled by parent (App.jsx)
               OR you can switch here based on activeMenu
             */}
-            {typeof children === 'function'
-              ? children(activeMenu)
+            {typeof children === "function"
+              ? children(activeMenu, setActiveMenu)
               : children}
           </motion.div>
-
         </main>
       </div>
-
     </div>
   );
 }

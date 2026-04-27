@@ -11,6 +11,8 @@ import BinTask from "./components/pages/BinTask";
 import Profile from "./components/pages/Profile";
 import AllTasks from "./components/pages/AllTasks";
 
+import Account from "./components/pages/Account";
+
 export default function App() {
   // ================= AUTH =================
   const [isAuth, setIsAuth] = useState(!!localStorage.getItem("token"));
@@ -50,10 +52,16 @@ export default function App() {
   return (
     <>
       <MainLayout onSearch={setSearch} onLogout={() => setIsAuth(false)}>
-        {(activeMenu) => {
+        {(activeMenu, setActiveMenuPage) => {
           switch (activeMenu) {
             case "Dashboard":
-              return <Dashboard showToast={showToast} search={search} />;
+              return (
+                <Dashboard
+                  showToast={showToast}
+                  onChange={setActiveMenuPage}
+                  search={search}
+                />
+              );
 
             case "All Tasks":
               return <AllTasks showToast={showToast} />;
@@ -76,6 +84,14 @@ export default function App() {
 
             case "Profile":
               return <Profile showToast={showToast} />;
+
+            case "Account":
+              return (
+                <Account
+                  showToast={showToast}
+                  onLogout={() => setIsAuth(false)}
+                />
+              );
 
             default:
               return <Dashboard showToast={showToast} search={search} />;

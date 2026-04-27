@@ -7,7 +7,7 @@ export default function Sidebar({ active, onChange }) {
     { name: 'All Tasks', icon: '📋' },
     { name: 'Add Task', icon: '➕' },
     { name: 'Bin Task', icon: '🗑️' },
-    { name: 'Profile', icon: '👤' },
+    // { name: 'Profile', icon: '👤' },
     { name: 'Contact Us', icon: '✉️' },
   ];
 
