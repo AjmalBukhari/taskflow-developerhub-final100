@@ -35,7 +35,7 @@ export default function AllTasks({ showToast }) {
     try {
       setLoading(true);
       const { data } = await getAllTasks({ search, status });
-      setTasks(data);
+      setTasks(data.data);
     } catch {
       showToast("Failed to load tasks", "error");
     } finally {

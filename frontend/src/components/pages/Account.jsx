@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import {
   getProfile,
   updateProfile,
-  deleteAccount // make sure this exists in API
+  deleteAccount,
+  updatePassword
 } from '../../services/api';
 
 export default function Account({ showToast, onLogout }) {
@@ -12,7 +13,10 @@ export default function Account({ showToast, onLogout }) {
   const [form, setForm] = useState({
     fullname: '',
     email: '',
-    password: ''
+    password: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -20,11 +24,11 @@ export default function Account({ showToast, onLogout }) {
   const fetchUser = useCallback(async () => {
     try {
       const { data } = await getProfile();
-      setUser(data);
+      setUser(data.data);
 
       setForm({
-        fullname: data.fullname || '',
-        email: data.email || '',
+        fullname: data.data.fullname || '',
+        email: data.data.email || '',
         password: ''
       });
 
@@ -57,6 +61,42 @@ export default function Account({ showToast, onLogout }) {
 
     } catch {
       showToast('Update failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ================= CHANGE PASSWORD =================
+  const handleChangePassword = async () => {
+    if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
+      return showToast("All fields are required", "warning");
+    }
+
+    if (form.newPassword !== form.confirmPassword) {
+      return showToast("Passwords do not match", "warning");
+    }
+
+    if (form.newPassword.length < 6) {
+      return showToast("Password must be at least 6 characters", "warning");
+    }
+
+    try {
+      setLoading(true);
+
+      await updatePassword({
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword
+      });
+
+      showToast("Password changed successfully");
+      setForm({
+        ...form,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch {
+      showToast("Failed to change password", "error");
     } finally {
       setLoading(false);
     }
@@ -100,6 +140,48 @@ export default function Account({ showToast, onLogout }) {
         <p className="text-sm text-gray-500">
           Manage your personal information and account
         </p>
+      </div>
+
+      {/* ================= CHANGE PASSWORD ================= */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
+
+        <h2 className="text-lg font-medium">Change Password</h2>
+
+        <input
+          name="currentPassword"
+          type="password"
+          value={form.currentPassword}
+          onChange={handleChange}
+          placeholder="Current Password"
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+        />
+
+        <input
+          name="newPassword"
+          type="password"
+          value={form.newPassword}
+          onChange={handleChange}
+          placeholder="New Password"
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+        />
+
+        <input
+          name="confirmPassword"
+          type="password"
+          value={form.confirmPassword}
+          onChange={handleChange}
+          placeholder="Confirm New Password"
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500"
+        />
+
+        <button
+          onClick={handleChangePassword}
+          disabled={loading}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition disabled:opacity-50"
+        >
+          {loading ? 'Changing...' : 'Change Password'}
+        </button>
+
       </div>
 
       {/* ================= ACCOUNT FORM ================= */}

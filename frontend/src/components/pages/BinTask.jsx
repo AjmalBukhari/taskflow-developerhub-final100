@@ -25,7 +25,7 @@ export default function BinTask({ showToast }) {
     try {
       setLoading(true);
       const { data } = await getBinTasks();
-      setTasks(data);
+      setTasks(data.data);
     } catch (err) {
       showToast('Failed to load bin tasks', 'error');
     } finally {

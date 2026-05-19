@@ -36,8 +36,6 @@ const Analytics = ({ showToast }) => {
   const [loading, setLoading] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
 
-  const { fetchNotifications } = useNotifications();
-
   // Fetch analytics data
   const fetchAnalytics = useCallback(async () => {
     try {

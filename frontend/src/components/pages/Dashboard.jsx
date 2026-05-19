@@ -12,7 +12,7 @@ export default function Dashboard({ showToast, onChange }) {
   const fetchTasks = useCallback(async () => {
     try {
       const { data } = await getAllTasks({});
-      setTasks(data);
+      setTasks(data.data);
     } catch {
       showToast("Failed to load tasks", "error");
     }
@@ -21,7 +21,7 @@ export default function Dashboard({ showToast, onChange }) {
   const fetchAnalytics = useCallback(async () => {
     try {
       const { data } = await getAnalyticsOverview();
-      setAnalytics(data);
+      setAnalytics(data.data);
     } catch {
       showToast("Failed to load analytics", "error");
     }

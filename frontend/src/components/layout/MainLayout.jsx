@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { motion } from "framer-motion";
 
 export default function MainLayout({ children, onSearch, onLogout }) {
   const [activeMenu, setActiveMenu] = useState("Dashboard");
+
+  // Handle navigation to Account page
+  useEffect(() => {
+    const handleNavigateAccount = () => {
+      setActiveMenu("Account");
+    };
+
+    document.addEventListener('navigateAccount', handleNavigateAccount);
+    return () => document.removeEventListener('navigateAccount', handleNavigateAccount);
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50">

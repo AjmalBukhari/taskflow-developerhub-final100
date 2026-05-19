@@ -46,6 +46,9 @@ export const updateProfile = (data) =>
 export const deleteAccount = () =>
   API.delete('/auth/me');
 
+export const updatePassword = (data) =>
+  API.put('/auth/me/password', data);
+
 // ================= TASKS =================
 
 // Get all tasks (with search + filter)
@@ -131,35 +134,5 @@ export const getUnreadCount = () =>
 // Permanently delete
 export const permanentDeleteTask = (id) =>
   API.delete(`/tasks/permanent/${id}`);
-
-// ================= PHASE-2: TASK SHARING =================
-export const shareTask = (id, userIds) =>
-  API.put(`/tasks/${id}/share`, { userIds });
-
-export const getSharedTasks = () =>
-  API.get('/tasks/shared');
-
-// ================= PHASE-2: NOTIFICATIONS =================
-export const getNotifications = () =>
-  API.get('/notifications');
-
-export const markNotificationRead = (id) =>
-  API.put(`/notifications/${id}/read`);
-
-export const markAllNotificationsRead = () =>
-  API.put('/notifications/read-all');
-
-export const deleteNotification = (id) =>
-  API.delete(`/notifications/${id}`);
-
-// ================= PHASE-2: ANALYTICS =================
-export const getAnalyticsOverview = () =>
-  API.get('/analytics/overview');
-
-export const getAnalyticsTrends = (period) =>
-  API.get(`/analytics/trends?period=${period}`);
-
-export const getPriorityDistribution = () =>
-  API.get('/analytics/priority');
 
 export default API;

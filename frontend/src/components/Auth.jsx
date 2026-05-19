@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { loginUser, registerUser } from "../services/api";
 
-export default function Auth({ onAuth, showToast }) {
+export default function Auth({ onAuth, showToast, onNavigateChangePassword }) {
   const [isLogin, setIsLogin] = useState(true);
 
   const [form, setForm] = useState({
@@ -108,6 +108,14 @@ export default function Auth({ onAuth, showToast }) {
             onChange={handleChange}
             className="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
           />
+
+          {/* FORGOT PASSWORD LINK */}
+          <p
+            onClick={() => onNavigateChangePassword?.()}
+            className="text-sm text-center cursor-pointer text-indigo-600 hover:underline"
+          >
+            Forgot Password?
+          </p>
 
           {/* BUTTON */}
           <button

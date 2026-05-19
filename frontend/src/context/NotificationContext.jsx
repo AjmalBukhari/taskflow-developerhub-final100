@@ -22,10 +22,10 @@ export const NotificationProvider = ({ children }) => {
     try {
       setLoading(true);
       const { data } = await getNotifications();
-      setNotifications(data);
+      setNotifications(data.data);
       
       // Update unread count
-      const unread = data.filter(n => !n.read).length;
+      const unread = data.data.filter(n => !n.read).length;
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -38,7 +38,7 @@ export const NotificationProvider = ({ children }) => {
   const fetchUnreadCount = async () => {
     try {
       const { data } = await getUnreadCount();
-      setUnreadCount(data.unreadCount);
+      setUnreadCount(data.data.unreadCount);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
@@ -83,35 +83,29 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  // Initialize socket connection and listeners
+  useSocket('new_notification', (notification) => {
+    setNotifications(prev => [notification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  });
+
+  useSocket('task_updated', (task) => {
+    setNotifications(prev => 
+      prev.map(n => 
+        n.taskId?._id === task._id 
+          ? { ...n, message: `Task "${task.title}" status was updated to ${task.status}` }
+          : n
+      )
+    );
+  });
+
   useEffect(() => {
-    // Connect socket
     socketService.connect();
-
-    // Listen for real-time notifications
-    useSocket('new_notification', (notification) => {
-      setNotifications(prev => [notification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-    });
-
-    // Listen for task updates
-    useSocket('task_updated', (task) => {
-      // Update task in notifications if exists
-      setNotifications(prev => 
-        prev.map(n => 
-          n.taskId?._id === task._id 
-            ? { ...n, message: `Task "${task.title}" status was updated to ${task.status}` }
-            : n
-        )
-      );
-    });
 
     // Fetch initial data
     fetchNotifications();
     fetchUnreadCount();
 
     return () => {
-      // Cleanup socket listeners
       socketService.disconnect();
     };
   }, []);
@@ -125,44 +119,6 @@ export const NotificationProvider = ({ children }) => {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotification
-  };
-
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
-};
-      const { data } = await getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter(n => !n.read).length);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
-    }
-  };
-
-  const addNotification = (notification) => {
-    setNotifications(prev => [notification, ...prev]);
-    setUnreadCount(prev => prev + 1);
-  };
-
-  const value = {
-    notifications,
-    unreadCount,
-    fetchNotifications,
-    markAllAsRead,
-    addNotification,
-    socket
   };
 
   return (

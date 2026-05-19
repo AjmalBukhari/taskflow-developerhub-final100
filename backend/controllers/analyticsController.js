@@ -187,3 +187,29 @@ exports.getUserAnalytics = async (req, res, next) => {
     next(err);
   }
 };
+
+// ================= GET PRIORITY DISTRIBUTION =================
+exports.getPriorityDistribution = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const priorityCounts = await Task.aggregate([
+      { $match: { user: userId, isDeleted: false } },
+      { $group: { _id: '$priority', count: { $sum: 1 } } }
+    ]);
+
+    const priorityMap = { Low: 0, Medium: 0, High: 0 };
+    priorityCounts.forEach(item => {
+      if (item._id) {
+        priorityMap[item._id] = item.count;
+      }
+    });
+
+    res.json({
+      status: 'success',
+      data: priorityMap
+    });
+  } catch (err) {
+    next(err);
+  }
+};

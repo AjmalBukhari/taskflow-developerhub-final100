@@ -11,8 +11,8 @@ export default function Profile({ showToast }) {
   const fetchUser = useCallback(async () => {
     try {
       const { data } = await getProfile();
-      setUser(data);
-      setForm({ fullname: data.fullname || "", password: "" });
+      setUser(data.data);
+      setForm({ fullname: data.data.fullname || "", password: "" });
     } catch {
       showToast("Failed to load profile", "error");
     }

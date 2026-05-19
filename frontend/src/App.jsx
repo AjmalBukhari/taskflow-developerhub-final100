@@ -9,7 +9,6 @@ import { NotificationProvider } from "./context/NotificationContext";
 import Dashboard from "./components/pages/Dashboard";
 import AddTask from "./components/pages/AddTask";
 import BinTask from "./components/pages/BinTask";
-import Analytics from "./components/pages/Analytics";
 
 import Profile from "./components/pages/Profile";
 import AllTasks from "./components/pages/AllTasks";
@@ -19,6 +18,13 @@ import Account from "./components/pages/Account";
 export default function App() {
   // ================= AUTH =================
   const [isAuth, setIsAuth] = useState(!!localStorage.getItem("token"));
+
+  // ================= NAVIGATE TO CHANGE PASSWORD =================
+  const handleNavigateChangePassword = () => {
+    setIsAuth(true);
+    // Set active menu to Account to show Change Password section
+    document.dispatchEvent(new CustomEvent('navigateAccount'));
+  };
 
   // ================= GLOBAL SEARCH =================
   const [search, setSearch] = useState("");
@@ -75,7 +81,7 @@ export default function App() {
   if (!isAuth) {
     return (
       <>
-        <Auth onAuth={() => setIsAuth(true)} showToast={showToast} />
+        <Auth onAuth={() => setIsAuth(true)} showToast={showToast} onNavigateChangePassword={handleNavigateChangePassword} />
 
         <Toast toasts={toasts} removeToast={removeToast} />
       </>

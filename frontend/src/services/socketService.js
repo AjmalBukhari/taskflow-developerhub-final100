@@ -12,7 +12,6 @@ class SocketService {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error('No token found for socket connection');
       return null;
     }
 
@@ -64,6 +63,13 @@ class SocketService {
       this.emit('taskRestored', taskId);
     });
 
+    // Attach any listeners registered before the socket was created
+    this.listeners.forEach((callbacks, event) => {
+      callbacks.forEach(callback => {
+        this.socket.on(event, callback);
+      });
+    });
+
     return this.socket;
   }
 
@@ -102,13 +108,6 @@ class SocketService {
 
     if (this.socket) {
       this.socket.off(event, callback);
-    }
-  }
-
-  // Emit event
-  emit(event, data) {
-    if (this.socket) {
-      this.socket.emit(event, data);
     }
   }
 
