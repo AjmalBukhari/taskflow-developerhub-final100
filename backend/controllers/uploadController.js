@@ -23,6 +23,8 @@ async function uploadToStorage(userId, storedName, buffer, contentType) {
       await supabase.storage.createBucket(BUCKET_NAME, { public: true }).catch(() => {});
       const { error: retryError } = await bucket.upload(storagePath, buffer, { contentType, upsert: false });
       if (retryError) throw new Error(retryError.message);
+    } else if (error.message?.toLowerCase().includes('row-level security') || error.message?.includes('violates')) {
+      throw new Error('Storage permission denied. Please update SUPABASE_SERVICE_ROLE_KEY in Vercel env to the actual service_role key from Supabase dashboard (Project Settings → API → service_role key).');
     } else {
       throw new Error(error.message);
     }
