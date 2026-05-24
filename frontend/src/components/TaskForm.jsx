@@ -32,7 +32,7 @@ export default function TaskForm({ task, onClose, onSaved, showToast }) {
       setLoading(true);
 if (task) {
          await updateTask(task.id, form);
-         showToast('Task updated');
+         showToast(`Task "${task.title}" updated`, 'info');
       } else {
         await createTask(form);
         showToast('Task created');

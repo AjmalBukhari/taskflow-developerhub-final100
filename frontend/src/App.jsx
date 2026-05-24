@@ -41,9 +41,9 @@ export default function App() {
     showToast(notification.message, 'info');
   });
 
-  useSocket('task_updated', (task) => {
-    showToast(`Task "${task.title}" updated`, 'info');
-  });
+  // useSocket('task_updated', (task) => {
+  //   showToast(`Task "${task.title}" updated`, 'info');
+  // });
 
   // useSocket('task_deleted', (taskId) => {
   //   showToast('Task deleted', 'error');

@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { getAnalyticsOverview, getAnalyticsTrends } from "../../services/api";
+import { getAnalyticsOverview } from "../../services/api";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Sector } from "recharts";
 import { useTheme } from "../../context/ThemeContext";
-
-const COLORS = {
-  status: { Pending: '#F59E0B', 'In Progress': '#3B82F6', Completed: '#10B981' },
-  priority: { Low: '#10B981', Medium: '#F59E0B', High: '#EF4444' }
-};
 
 export default function Analytics({ showToast }) {
   const { dark } = useTheme();
   const [overview, setOverview] = useState(null);
-  const [trends, setTrends] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -47,12 +41,8 @@ export default function Analytics({ showToast }) {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [overviewRes, trendsRes] = await Promise.all([
-        getAnalyticsOverview(),
-        getAnalyticsTrends()
-      ]);
+      const overviewRes = await getAnalyticsOverview();
       setOverview(overviewRes.data.data);
-      setTrends(trendsRes.data.data);
     } catch {
       showToast("Failed to load analytics", "error");
     } finally {
