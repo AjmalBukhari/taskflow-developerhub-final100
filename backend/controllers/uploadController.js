@@ -1,27 +1,38 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
 
-const BASE_UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const BUCKET_NAME = 'taskflow-files';
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const userDir = path.join(BASE_UPLOAD_DIR, req.user.id);
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-    cb(null, userDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  }
-});
-
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+function getPublicUrl(storagePath) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${storagePath}`;
+}
+
+let bucketChecked = false;
+async function ensureBucket() {
+  if (bucketChecked || !supabase) return;
+  const { data: buckets } = await supabase.storage.listBuckets();
+  if (!buckets?.find(b => b.name === BUCKET_NAME)) {
+    await supabase.storage.createBucket(BUCKET_NAME, { public: true });
+  }
+  bucketChecked = true;
+}
+
+async function uploadToStorage(userId, storedName, buffer, contentType) {
+  if (!supabase) throw new Error('Supabase not configured');
+  await ensureBucket();
+  const storagePath = `${userId}/${storedName}`;
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(storagePath, buffer, { contentType, upsert: false });
+  if (error) throw new Error('Storage upload failed: ' + error.message);
+  return storagePath;
+}
 
 exports.uploadAttachment = async (req, res, next) => {
   try {
@@ -43,29 +54,45 @@ exports.uploadAttachment = async (req, res, next) => {
         .in('id', existingIds);
       const existingNames = (existingFiles || []).map(f => f.filename);
       if (existingNames.includes(req.file.originalname)) {
-        fs.unlinkSync(req.file.path);
         return next(AppError(`File "${req.file.originalname}" already exists. Rename and try again.`, 400));
       }
     }
 
-    const relativePath = `uploads/${req.user.id}/${req.file.filename}`;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(req.file.originalname);
+    const storedName = uniqueSuffix + ext;
+
+    let storagePath;
+    try {
+      storagePath = await uploadToStorage(req.user.id, storedName, req.file.buffer, req.file.mimetype);
+    } catch (err) {
+      return next(AppError('Failed to upload file to storage', 500));
+    }
+
     const { data: fileRecord, error: insertError } = await supabase
       .from('uploadFiles')
       .insert({
         filename: req.file.originalname,
-        filepath: relativePath,
+        filepath: storagePath,
         user_id: req.user.id,
         task_id: req.params.id,
         size: req.file.size
       })
       .select()
       .single();
-    if (insertError) return next(AppError(insertError.message, 400));
+    if (insertError) {
+      await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
+      return next(AppError(insertError.message, 400));
+    }
 
     const attachments = [...existingIds, fileRecord.id];
     await supabase.from('tasks').update({ attachments }).eq('id', req.params.id);
 
-    res.status(201).json({ status: 'success', message: 'File uploaded', data: fileRecord });
+    res.status(201).json({
+      status: 'success',
+      message: 'File uploaded',
+      data: { ...fileRecord, publicUrl: getPublicUrl(storagePath) }
+    });
   } catch (err) {
     next(err);
   }
@@ -91,7 +118,8 @@ exports.getAttachments = async (req, res, next) => {
       .in('id', ids);
     if (error) return next(AppError(error.message, 400));
 
-    res.json({ status: 'success', data: files });
+    const data = (files || []).map(f => ({ ...f, publicUrl: getPublicUrl(f.filepath) }));
+    res.json({ status: 'success', data });
   } catch (err) {
     next(err);
   }
@@ -115,9 +143,7 @@ exports.downloadAttachment = async (req, res, next) => {
     if (!task || (task.user_id !== req.user.id && fileRecord.user_id !== req.user.id))
       return next(AppError('Access denied', 403));
 
-    const filePath = path.join(BASE_UPLOAD_DIR, '..', fileRecord.filepath);
-    if (!fs.existsSync(filePath)) return next(AppError('File not found on disk', 404));
-    res.download(filePath, fileRecord.filename);
+    res.redirect(getPublicUrl(fileRecord.filepath));
   } catch (err) {
     next(err);
   }
@@ -141,9 +167,7 @@ exports.previewAttachment = async (req, res, next) => {
     if (!task || (task.user_id !== req.user.id && fileRecord.user_id !== req.user.id))
       return next(AppError('Access denied', 403));
 
-    const filePath = path.join(BASE_UPLOAD_DIR, '..', fileRecord.filepath);
-    if (!fs.existsSync(filePath)) return next(AppError('File not found on disk', 404));
-    res.sendFile(filePath);
+    res.redirect(getPublicUrl(fileRecord.filepath));
   } catch (err) {
     next(err);
   }
@@ -167,9 +191,7 @@ exports.removeAttachment = async (req, res, next) => {
       .single();
     if (!task) return next(AppError('Task not found or access denied', 404));
 
-    const filePath = path.join(BASE_UPLOAD_DIR, '..', fileRecord.filepath);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-
+    await supabase.storage.from(BUCKET_NAME).remove([fileRecord.filepath]);
     await supabase.from('uploadFiles').delete().eq('id', req.params.attachmentId);
 
     const attachments = (task.attachments || []).filter(id => id !== req.params.attachmentId);
@@ -189,44 +211,49 @@ exports.copyFilesForShare = async (task, recipientId) => {
     .from('uploadFiles')
     .select('*')
     .in('id', ids);
-
   if (!sourceFiles || sourceFiles.length === 0) return [];
-
-  const destDir = path.join(BASE_UPLOAD_DIR, recipientId);
-  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
   const newIds = [];
   for (const file of sourceFiles) {
-    const srcPath = path.join(BASE_UPLOAD_DIR, '..', file.filePath);
-    const newStoredName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.filename);
-    const destPath = path.join(destDir, newStoredName);
-    if (fs.existsSync(srcPath)) fs.copyFileSync(srcPath, destPath);
+    const ext = path.extname(file.filename);
+    const newStoredName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
+    const newPath = `${recipientId}/${newStoredName}`;
+
+    const { error: copyError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .copy(file.filepath, newPath);
+    if (copyError) continue;
 
     const { data: newRecord } = await supabase
       .from('uploadFiles')
       .insert({
         filename: file.filename,
-        filepath: `uploads/${recipientId}/${newStoredName}`,
+        filepath: newPath,
         user_id: recipientId,
         task_id: task.id,
         size: file.size
       })
       .select()
       .single();
-
     if (newRecord) newIds.push(newRecord.id);
   }
   return newIds;
 };
 
-exports.deleteUserFolder = (userId) => {
-  const userDir = path.join(BASE_UPLOAD_DIR, userId);
-  if (fs.existsSync(userDir)) fs.rmSync(userDir, { recursive: true, force: true });
+exports.deleteUserFolder = async (userId) => {
+  try {
+    const { data: files } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(userId);
+    if (files && files.length > 0) {
+      const paths = files.map(f => `${userId}/${f.name}`);
+      await supabase.storage.from(BUCKET_NAME).remove(paths);
+    }
+  } catch (err) {
+    console.warn('Failed to delete user storage folder:', err.message);
+  }
 };
 
-exports.createUserFolder = (userId) => {
-  const userDir = path.join(BASE_UPLOAD_DIR, userId);
-  if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
-};
+exports.createUserFolder = () => {};
 
 exports.upload = upload;

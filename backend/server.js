@@ -7,7 +7,6 @@ const authRoutes = require('./routes/auth');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
 const uploadRoutes = require('./routes/uploads');
-const path = require('path');
 
 const app = express();
 
@@ -18,8 +17,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/uploads', uploadRoutes);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 app.use(errorHandler);
 
 if (require.main === module) {

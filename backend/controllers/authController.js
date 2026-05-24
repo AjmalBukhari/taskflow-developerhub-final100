@@ -137,7 +137,7 @@ exports.deleteUser = async (req, res, next) => {
     if (!isPasswordCorrect) return next(AppError('Password is incorrect', 400));
     await supabase.from('notifications').delete().eq('recipient', req.user.id);
     await supabase.from('tasks').delete().eq('user_id', req.user.id);
-    deleteUserFolder(req.user.id);
+    await deleteUserFolder(req.user.id);
     await supabase.from('users').delete().eq('id', req.user.id);
     res.json({ status: 'success', message: 'User deleted successfully' });
   } catch (err) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { uploadAttachment, getAttachments, removeAttachment, downloadAttachment, previewAttachment } from "../../services/api";
+import { uploadAttachment, getAttachments, removeAttachment } from "../../services/api";
 
 export default function FileUpload({ taskId, showToast }) {
   const [attachments, setAttachments] = useState([]);
@@ -79,9 +79,9 @@ export default function FileUpload({ taskId, showToast }) {
             <div key={att.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1.5 text-xs">
               <div className="flex items-center gap-2 min-w-0">
                 {isImage(att.filename) ? (
-                  <img src={previewAttachment(taskId, att.id)} alt={att.filename}
+                  <img src={att.publicUrl} alt={att.filename}
                     className="w-8 h-8 object-cover rounded cursor-pointer"
-                    onClick={() => window.open(previewAttachment(taskId, att.id), "_blank")} />
+                    onClick={() => window.open(att.publicUrl, "_blank")} />
                 ) : (
                   <span className="text-gray-400 dark:text-gray-500 text-base">📄</span>
                 )}
@@ -91,7 +91,7 @@ export default function FileUpload({ taskId, showToast }) {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <a href={downloadAttachment(taskId, att.id)} download
+                <a href={att.publicUrl} target="_blank" rel="noreferrer"
                   className="text-blue-500 dark:text-blue-400 hover:underline">Download</a>
                 <button onClick={() => handleRemove(att.id)}
                   className="text-red-500 dark:text-red-400 hover:underline ml-2">Remove</button>
