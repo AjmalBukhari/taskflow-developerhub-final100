@@ -1,21 +1,9 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
 
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|zip/;
@@ -38,9 +26,10 @@ exports.uploadAttachment = async (req, res, next) => {
       .single();
     if (error || !task) return next(AppError('Task not found or access denied', 404));
     if (!req.file) return next(AppError('No file uploaded', 400));
+    const fileId = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const attachment = {
       filename: req.file.originalname,
-      fileUrl: `/api/uploads/${req.file.filename}`,
+      fileUrl: `/api/uploads/${fileId}`,
       uploadedAt: new Date().toISOString()
     };
     const attachments = [...(task.attachments || []), attachment];
