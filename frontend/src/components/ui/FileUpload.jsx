@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { uploadAttachment, getAttachments, removeAttachment } from "../../services/api";
 
 export default function FileUpload({ taskId, showToast }) {
@@ -6,7 +6,7 @@ export default function FileUpload({ taskId, showToast }) {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const fetchAttachments = async () => {
+  const fetchAttachments = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await getAttachments(taskId);
@@ -16,9 +16,9 @@ export default function FileUpload({ taskId, showToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId, showToast]);
 
-  useEffect(() => { fetchAttachments(); }, [taskId]);
+  useEffect(() => { fetchAttachments(); }, [fetchAttachments]);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
