@@ -47,7 +47,7 @@ exports.uploadAttachment = async (req, res, next) => {
     const existingIds = task.attachments || [];
     if (existingIds.length > 0) {
       const { data: existingFiles } = await supabase
-        .from('uploadFiles')
+        .from('uploadfiles')
         .select('filename')
         .in('id', existingIds);
       const existingNames = (existingFiles || []).map(f => f.filename);
@@ -69,7 +69,7 @@ exports.uploadAttachment = async (req, res, next) => {
     }
 
     const { data: fileRecord, error: insertError } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .insert({
         filename: req.file.originalname,
         filepath: storagePath,
@@ -112,7 +112,7 @@ exports.getAttachments = async (req, res, next) => {
     if (ids.length === 0) return res.json({ status: 'success', data: [] });
 
     const { data: files, error } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .select('*')
       .in('id', ids);
     if (error) return next(AppError(error.message, 400));
@@ -127,7 +127,7 @@ exports.getAttachments = async (req, res, next) => {
 exports.downloadAttachment = async (req, res, next) => {
   try {
     const { data: fileRecord, error } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .select('*')
       .eq('id', req.params.attachmentId)
       .single();
@@ -151,7 +151,7 @@ exports.downloadAttachment = async (req, res, next) => {
 exports.previewAttachment = async (req, res, next) => {
   try {
     const { data: fileRecord, error } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .select('*')
       .eq('id', req.params.attachmentId)
       .single();
@@ -175,7 +175,7 @@ exports.previewAttachment = async (req, res, next) => {
 exports.removeAttachment = async (req, res, next) => {
   try {
     const { data: fileRecord, error: fetchError } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .select('*')
       .eq('id', req.params.attachmentId)
       .single();
@@ -191,7 +191,7 @@ exports.removeAttachment = async (req, res, next) => {
     if (!task) return next(AppError('Task not found or access denied', 404));
 
     await supabase.storage.from(BUCKET_NAME).remove([fileRecord.filepath]);
-    await supabase.from('uploadFiles').delete().eq('id', req.params.attachmentId);
+    await supabase.from('uploadfiles').delete().eq('id', req.params.attachmentId);
 
     const attachments = (task.attachments || []).filter(id => id !== req.params.attachmentId);
     await supabase.from('tasks').update({ attachments }).eq('id', fileRecord.task_id);
@@ -207,7 +207,7 @@ exports.copyFilesForShare = async (task, recipientId) => {
   if (ids.length === 0) return [];
 
   const { data: sourceFiles } = await supabase
-    .from('uploadFiles')
+    .from('uploadfiles')
     .select('*')
     .in('id', ids);
   if (!sourceFiles || sourceFiles.length === 0) return [];
@@ -224,7 +224,7 @@ exports.copyFilesForShare = async (task, recipientId) => {
     if (copyError) continue;
 
     const { data: newRecord } = await supabase
-      .from('uploadFiles')
+      .from('uploadfiles')
       .insert({
         filename: file.filename,
         filepath: newPath,
