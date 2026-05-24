@@ -142,7 +142,8 @@ exports.downloadAttachment = async (req, res, next) => {
     if (!task || (task.user_id !== req.user.id && fileRecord.user_id !== req.user.id))
       return next(AppError('Access denied', 403));
 
-    res.redirect(getPublicUrl(fileRecord.filepath));
+    const downloadUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${fileRecord.filepath}?download=${encodeURIComponent(fileRecord.filename)}`;
+    res.redirect(downloadUrl);
   } catch (err) {
     next(err);
   }

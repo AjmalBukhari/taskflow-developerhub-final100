@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { uploadAttachment, getAttachments, removeAttachment } from "../../services/api";
+import { uploadAttachment, getAttachments, removeAttachment, downloadAttachment } from "../../services/api";
+import FilePreviewModal from "./FilePreviewModal";
 
 export default function FileUpload({ taskId, showToast }) {
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const fetchAttachments = useCallback(async () => {
     try {
@@ -55,6 +57,10 @@ export default function FileUpload({ taskId, showToast }) {
     }
   };
 
+  const handleDownload = (att) => {
+    window.open(downloadAttachment(taskId, att.id), '_blank');
+  };
+
   const isImage = (filename) => /\.(jpe?g|png|gif|bmp|webp)$/i.test(filename);
   const formatSize = (bytes) => {
     if (!bytes) return "";
@@ -81,26 +87,32 @@ export default function FileUpload({ taskId, showToast }) {
                 {isImage(att.filename) ? (
                   <img src={att.publicUrl} alt={att.filename}
                     className="w-8 h-8 object-cover rounded cursor-pointer"
-                    onClick={() => window.open(att.publicUrl, "_blank")} />
+                    onClick={() => setPreviewFile(att)} />
                 ) : (
                   <span className="text-gray-400 dark:text-gray-500 text-base">📄</span>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate max-w-[150px] dark:text-gray-200">{att.filename}</p>
+                  <p className="truncate max-w-[120px] dark:text-gray-200">{att.filename}</p>
                   {att.size ? <p className="text-gray-400 dark:text-gray-500">{formatSize(att.size)}</p> : null}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <a href={att.publicUrl} target="_blank" rel="noreferrer"
-                  className="text-blue-500 dark:text-blue-400 hover:underline">Download</a>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => setPreviewFile(att)}
+                  className="text-indigo-500 dark:text-indigo-400 hover:underline">Preview</button>
+                <button onClick={() => handleDownload(att)}
+                  className="text-blue-500 dark:text-blue-400 hover:underline">Download</button>
                 <button onClick={() => handleRemove(att.id)}
-                  className="text-red-500 dark:text-red-400 hover:underline ml-2">Remove</button>
+                  className="text-red-500 dark:text-red-400 hover:underline">Remove</button>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <p className="text-xs text-gray-400 dark:text-gray-500">No files attached</p>
+      )}
+      {previewFile && (
+        <FilePreviewModal file={previewFile} publicUrl={previewFile.publicUrl}
+          onClose={() => setPreviewFile(null)} />
       )}
     </div>
   );
