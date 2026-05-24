@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const canPreview = (filename) => {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  return ['jpg','jpeg','png','gif','bmp','webp','svg','mp4','webm','ogg','mov','pdf','txt','csv','json','xml','md','log'].includes(ext);
-};
-
 const getFileType = (filename) => {
   const ext = filename.split('.').pop()?.toLowerCase();
   if (['jpg','jpeg','png','gif','bmp','webp','svg'].includes(ext)) return 'image';
@@ -21,7 +16,6 @@ export default function FilePreviewModal({ file, publicUrl, onClose }) {
   const [textError, setTextError] = useState(null);
 
   const type = getFileType(file.filename);
-  const previewable = canPreview(file.filename);
 
   useEffect(() => {
     if (type === 'text') {
