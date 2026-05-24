@@ -23,6 +23,7 @@ export default function Auth({ onAuth, showToast }) {
         const { data } = await loginUser({ email: form.email, password: form.password });
         localStorage.setItem("token", data.token);
         showToast("Login successful");
+        window.history.replaceState(null, '', '/');
         onAuth();
       } else {
         await registerUser({ fullname: form.fullname, email: form.email, password: form.password });
