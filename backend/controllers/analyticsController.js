@@ -15,6 +15,10 @@ exports.getOverview = async (req, res, next) => {
     const { count: pendingTasks } = await supabase.from('tasks').select('*', { count: 'exact' }).eq('user_id', userId).eq('isDeleted', false).eq('status', 'Pending');
     const { count: inProgressTasks } = await supabase.from('tasks').select('*', { count: 'exact' }).eq('user_id', userId).eq('isDeleted', false).eq('status', 'In Progress');
     const { count: highPriorityTasks } = await supabase.from('tasks').select('*', { count: 'exact' }).eq('user_id', userId).eq('isDeleted', false).eq('priority', 'High');
+    const { data: allTasks } = await supabase.from('tasks').select('dueDate,status,sharedWith').eq('user_id', userId).eq('isDeleted', false);
+    const overdueTasks = allTasks ? allTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Completed').length : 0;
+    const sharedTasks = allTasks ? allTasks.filter(t => t.sharedWith?.length > 0).length : 0;
+    const dueTodayTasks = allTasks ? allTasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === new Date().toDateString()).length : 0;
 
     res.json({
       status: 'success',
@@ -24,7 +28,9 @@ exports.getOverview = async (req, res, next) => {
         pendingTasks: pendingTasks || 0,
         inProgressTasks: inProgressTasks || 0,
         highPriorityTasks: highPriorityTasks || 0,
-        dueTodayTasks: 0,
+        overdueTasks,
+        sharedTasks,
+        dueTodayTasks,
         weeklyCreated: 0,
         weeklyCompleted: 0,
         monthlyCreated: 0,

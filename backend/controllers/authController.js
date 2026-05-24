@@ -133,8 +133,8 @@ exports.deleteUser = async (req, res, next) => {
     if (error || !user) return next(AppError('User not found', 404));
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) return next(AppError('Password is incorrect', 400));
-    await supabase.from('tasks').delete().eq('user_id', req.user.id);
     await supabase.from('notifications').delete().eq('recipient', req.user.id);
+    await supabase.from('tasks').delete().eq('user_id', req.user.id);
     await supabase.from('users').delete().eq('id', req.user.id);
     res.json({ status: 'success', message: 'User deleted successfully' });
   } catch (err) {

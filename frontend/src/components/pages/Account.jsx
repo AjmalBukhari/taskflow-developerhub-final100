@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { getProfile, updateProfile, deleteAccount } from '../../services/api';
+import ConfirmModal from '../ui/ConfirmModal';
 
 export default function Account({ showToast, onLogout }) {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState({ fullname: '', email: '', password: '' });
   const [deletePassword, setDeletePassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -43,7 +45,10 @@ export default function Account({ showToast, onLogout }) {
       showToast('Please enter your current password to delete account', 'error');
       return;
     }
-    if (!window.confirm('Are you sure you want to delete your account? This will permanently delete your account and all tasks.')) return;
+    setConfirmDelete(true);
+  };
+
+  const executeDelete = async () => {
     try {
       setLoading(true);
       await deleteAccount({ password: deletePassword });
@@ -133,6 +138,13 @@ export default function Account({ showToast, onLogout }) {
           {loading ? 'Deleting...' : 'Delete Account'}
         </button>
       </div>
+      <ConfirmModal isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={executeDelete}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This will permanently delete your account and all tasks. This action cannot be undone."
+        confirmText="Delete"
+        type="danger" />
     </motion.div>
   );
 }

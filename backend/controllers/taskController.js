@@ -40,7 +40,7 @@ exports.getTask = async (req, res, next) => {
       .from('tasks')
       .select('*')
       .eq('id', req.params.id)
-      .eq('user_id', req.user.id)
+      .or(`user_id.eq.${req.user.id},sharedWith.cs.{${req.user.id}}`)
       .single();
     if (error || !task) return next(AppError('Task not found', 404));
     res.json({ status: 'success', data: task });
@@ -141,6 +141,7 @@ exports.permanentDelete = async (req, res, next) => {
       .eq('isDeleted', true)
       .single();
     if (error || !task) return next(AppError('Task not found', 404));
+    await supabase.from('notifications').delete().eq('taskId', req.params.id);
     const { error: deleteError } = await supabase
       .from('tasks')
       .delete()
@@ -171,28 +172,47 @@ exports.shareTask = async (req, res, next) => {
       .in('id', userIds);
     if (usersError || users.length !== userIds.length) return next(AppError('One or more users not found', 404));
     if (userIds.includes(req.user.id)) return next(AppError('Cannot share task with yourself', 400));
-    const alreadyShared = task.sharedwith?.filter(id => userIds.includes(id)) || [];
-    if (alreadyShared.length > 0) return next(AppError(`Task already shared with users: ${alreadyShared.join(', ')}`, 400));
-    const updatedSharedWith = [...(task.sharedwith || []), ...userIds];
-    const { data: updatedTask, error: updateError } = await supabase
+    const { data: existingCopies } = await supabase
       .from('tasks')
-      .update({ sharedwith: updatedSharedWith })
-      .eq('id', req.params.id)
-      .select()
-      .single();
-    if (updateError) return next(AppError(updateError.message, 400));
-    const notifications = users.map(user => ({
-      recipient: user.id,
+      .select('user_id')
+      .eq('title', task.title)
+      .in('user_id', userIds)
+      .eq('isDeleted', false);
+    const alreadyShared = existingCopies?.map(c => c.user_id) || [];
+    const newUsers = users.filter(u => !alreadyShared.includes(u.id));
+    if (newUsers.length === 0) return next(AppError('Task already shared with all specified users', 400));
+    const newTasks = newUsers.map(u => ({
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      user_id: u.id,
+      owner: u.id,
+      attachments: task.attachments,
+      pinned: false,
+      isDeleted: false
+    }));
+    const { data: createdTasks, error: insertError } = await supabase
+      .from('tasks')
+      .insert(newTasks)
+      .select();
+    if (insertError) return next(AppError(insertError.message, 400));
+    const notifications = newUsers.map(u => ({
+      recipient: u.id,
       message: `Task shared with you: "${task.title}"`,
-      taskId: task.id,
+      taskId: createdTasks.find(t => t.user_id === u.id)?.id || task.id,
       type: 'task_shared'
     }));
     await supabase.from('notifications').insert(notifications);
-    users.forEach(user => {
-      getIO().to(user.id.toString()).emit('new_notification', notifications[0]);
+    newUsers.forEach(u => {
+      getIO().to(u.id.toString()).emit('new_notification', { message: `Task shared with you: "${task.title}"` });
     });
-    const sharedWith = updatedSharedWith;
-    res.json({ status: 'success', message: `Task shared with ${users.length} user(s)`, data: { ...updatedTask, sharedWith } });
+    if (alreadyShared.length > 0) {
+      res.json({ status: 'success', message: `Task shared with ${newUsers.length} new user(s). Already shared with ${alreadyShared.length} user(s).`, data: createdTasks });
+    } else {
+      res.json({ status: 'success', message: `Task shared with ${newUsers.length} user(s)`, data: createdTasks });
+    }
   } catch (err) {
     next(err);
   }
@@ -203,11 +223,10 @@ exports.getSharedTasks = async (req, res, next) => {
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
-      .contains('sharedwith', [req.user.id])
+      .contains('sharedWith', [req.user.id])
       .eq('isDeleted', false);
     if (error) return next(AppError(error.message, 400));
-    const mappedTasks = tasks.map(t => ({ ...t, sharedWith: t.sharedwith }));
-    res.json({ status: 'success', results: mappedTasks.length, data: mappedTasks });
+    res.json({ status: 'success', results: tasks.length, data: tasks });
   } catch (err) {
     next(err);
   }

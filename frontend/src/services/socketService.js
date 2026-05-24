@@ -17,8 +17,9 @@ class SocketService {
 
     // Import socket.io-client dynamically
     const io = require('socket.io-client');
-    
-    this.socket = io('http://localhost:5000', {
+
+    const url = process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:5000';
+    this.socket = io(url, {
       auth: {
         token: token
       }

@@ -14,7 +14,6 @@ import AllTasks from "./components/pages/AllTasks";
 import Account from "./components/pages/Account";
 import Analytics from "./components/pages/Analytics";
 import Notifications from "./components/pages/Notifications";
-import { supabase } from "./utils/supabase";
 
 export default function App() {
   const location = useLocation();
