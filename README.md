@@ -1,304 +1,418 @@
-# TaskFlow - Full Stack Task Management Application
+# TaskFlow - Full Stack Task Management System
 
-A modern, full-featured task management application built with React, Node.js, Express, and MongoDB. Features real-time collaboration, analytics dashboard, dark mode, file attachments, and more.
+A modern, full-featured task management application built with **React, Node.js, Express, and Supabase (PostgreSQL)**. Features JWT authentication, real-time collaboration, analytics dashboard, dark mode, file attachments, and more.
 
-## Features
+---
 
-### Core Features
-- **User Authentication** - JWT-based registration, login, and session management
-- **Task CRUD** - Create, read, update, and delete tasks with full validation
-- **Task Organization** - Status tracking (Pending, In Progress, Completed), priority levels (Low, Medium, High), pinning, and due dates
-- **Search & Filter** - Real-time search with status and priority filtering
-- **Soft Delete** - Bin system with 7-day auto-deletion, restore capability
-- **Bulk Operations** - Select and delete multiple tasks at once
+## Phase 1: Core Task Management (Weeks 1–3)
 
-### Collaboration (Phase 2)
-- **Task Sharing** - Share tasks with other users by ID
-- **Real-time Notifications** - Socket.IO powered notifications for sharing and updates
-- **Shared Task View** - View tasks shared with you
-- **Authorization** - Prevent unauthorized access and editing
+> **Objective:** Build a complete task management system with CRUD operations, authentication, search/filter, and progress tracking.
 
-### Analytics Dashboard
-- **Overview Stats** - Total, completed, pending, overdue, due today, shared tasks
-- **Completion Rate** - Track your productivity percentage
-- **Weekly/Monthly Trends** - Bar charts showing task creation and completion trends
-- **Status Distribution** - Pie chart showing task status breakdown
-- **Priority Distribution** - Pie chart showing priority breakdown
-- **MongoDB Aggregation** - Optimized queries for analytics data
+### Week 1 — Backend Development
 
-### UI/UX
-- **Dark Mode** - Toggle between light and dark themes with persistence
-- **Responsive Design** - Works on desktop, tablet, and mobile
-- **Smooth Animations** - Framer Motion powered transitions
-- **Toast Notifications** - Real-time feedback for all actions
-- **Pagination** - Efficient task list pagination
+**Tech Stack:**
+- **Runtime:** Node.js with Express.js
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** JWT + bcryptjs
+- **Validation:** express-validator
 
-### File Attachments
-- **Upload Files** - Attach images, PDFs, documents to tasks
-- **File Management** - View and remove attachments
-- **10MB Limit** - Configurable file size limits
+**API Endpoints Built:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/tasks` | Create a new task |
+| GET | `/api/tasks` | Fetch all tasks (with search/filter) |
+| GET | `/api/tasks/:id` | Fetch single task by ID |
+| PUT | `/api/tasks/:id` | Update a task |
+| DELETE | `/api/tasks/:id` | Soft delete a task |
 
-### Account Management
-- **Profile View** - View account information
-- **Account Settings** - Update name, email, password
-- **Account Deletion** - Secure account deletion with password confirmation
-- **Password Reset** - Forgot password functionality
+**Database Schema (`tasks` table):**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID (PK) | Auto-generated |
+| title | TEXT | Task title |
+| description | TEXT | Task description |
+| status | TEXT | Pending / In Progress / Completed |
+| priority | TEXT | Low / Medium / High |
+| dueDate | TIMESTAMPTZ | Due date |
+| user_id | UUID (FK → users) | Owner |
+| isDeleted | BOOLEAN | Soft delete flag |
+| createdAt | TIMESTAMPTZ | Auto-generated |
+| updatedAt | TIMESTAMPTZ | Auto-generated |
 
-## Tech Stack
+**Error Handling:** Graceful error responses with proper HTTP status codes across all endpoints.
 
-### Frontend
-- **React 19** - UI library
-- **React Router DOM 7** - Client-side routing
-- **Tailwind CSS 3** - Utility-first CSS framework
-- **Framer Motion** - Animation library
-- **Axios** - HTTP client
-- **Socket.IO Client** - Real-time communication
-- **Recharts** - Chart library for analytics
+### Week 2 — Frontend Development
 
-### Backend
-- **Node.js** - Runtime environment
-- **Express 5** - Web framework
-- **MongoDB + Mongoose 9** - Database and ODM
-- **JWT** - Authentication tokens
-- **bcryptjs** - Password hashing
-- **Socket.IO** - Real-time events
-- **express-validator** - Input validation
-- **Multer** - File upload handling
+**Tech Stack:**
+- **UI Library:** React 19
+- **Routing:** React Router DOM 7
+- **Styling:** Tailwind CSS 3
+- **HTTP Client:** Axios
+- **Animations:** Framer Motion
 
-## Installation
+**Components Built:**
+- **TaskList (`AllTasks.jsx`)** — Displays all tasks with pagination, bulk selection, and inline edit/delete/share actions
+- **TaskForm (`TaskForm.jsx`)** — Create and edit tasks with title, description, status, priority, due date, and pin toggle
+- **Task Details** — Inline editing via modal overlay
+- **Search Bar (`SearchBar.jsx`)** — Real-time search by title/description with status filter dropdown
 
-### Prerequisites
-- Node.js 18+
-- MongoDB (local or Atlas)
-- npm or yarn
+**API Integration:**
+- Axios instance with interceptors for JWT token injection and 401 auto-redirect
+- Full CRUD operations connected to backend endpoints
 
-### Backend Setup
+**Responsive Design:**
+- Mobile-first approach using Tailwind CSS
+- Works seamlessly on desktop, tablet, and mobile
 
+### Week 3 — Advanced Features & Polish
+
+**Authentication System:**
+- **Register/Login** — JWT-based with bcrypt password hashing
+- **Token Management** — Token stored in localStorage, sent via Authorization header
+- **Protected Routes** — Server-side middleware validates all authenticated requests
+- **Password Reset** — Forgot password flow with direct reset
+- **Account Management** — Update profile, change password, delete account
+
+**Search & Filters:**
+- Debounced search (400ms) for real-time filtering by title and description
+- Status filter dropdown (All / Pending / In Progress / Completed)
+- Combined with server-side query for efficient results
+
+**Progress Tracking:**
+- **ProgressBar** — Visual indicator showing percentage of completed tasks
+- **Dashboard cards** — Total, completed, pending, overdue, due today counts
+- **Completion rate** — Percentage display across the UI
+
+**Bin System (Soft Delete):**
+- Tasks move to bin instead of permanent deletion
+- Restore tasks from bin
+- Permanent delete with foreign key cleanup (notifications cascade)
+- Bin view with restore/permanent-delete actions
+
+---
+
+## Phase 2: Feature Expansion, Analytics & Deployment (Weeks 4–6)
+
+> **Objective:** Add collaborative features, analytics dashboard, deployment, and final polish.
+
+### Week 4 — Collaborative Features & Real-Time Notifications
+
+**User Collaboration (Task Sharing):**
+- **Share by Copy** — When a task is shared, a new independent copy is created for the recipient
+- Each user owns their copy — can edit, delete, and manage independently
+- Original owner's task remains unchanged
+- Duplicate sharing detection prevents multiple copies
+
+**Schema Updates:**
+| Column | Type | Description |
+|--------|------|-------------|
+| owner | UUID | Copy owner (same as user_id for sharing) |
+
+**API Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| PUT | `/api/tasks/:id/share` | Share task with users (creates copies) |
+| GET | `/api/tasks/shared` | Retrieve tasks shared with user |
+
+**Real-Time Notifications (Socket.IO):**
+- Notify users in real-time when a task is shared with them
+- Notify when a task's status is updated
+- Notification history with read/unread tracking
+
+**Frontend Integration:**
+- **ShareModal** — Enter user IDs to share tasks
+- **Notification dropdown** — Header bell icon with unread count badge
+- **Notifications page** — Full history with mark-as-read and clear-all
+- **Real-time toast** — Popup notifications for incoming events
+
+**Authorization:**
+- Only task owner can share/update/delete their tasks
+- Invalid sharing attempts handled with descriptive error messages
+
+### Week 5 — Advanced Analytics & Reporting
+
+**Analytics Dashboard:**
+- **Overview Stats:** Total, completed, pending, in-progress, high priority, overdue, due today, shared tasks, completion rate
+- **Interactive Pie Chart:** Status breakdown with hover tooltips and active sector highlighting
+- **Bar Charts:** Weekly and monthly trends (created vs completed)
+- **Summary Cards:** Weekly/monthly creation and completion counts
+
+**Backend Analytics Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/analytics/overview` | Summary statistics |
+| GET | `/api/analytics/trends` | Weekly/monthly trends data |
+
+**Visualization:**
+- Recharts library for all charts
+- Dark mode compatible chart themes
+- Responsive containers adapting to screen size
+
+### Week 6 — Deployment, Documentation & Final Enhancements
+
+**Deployment (Vercel):**
+- **Frontend:** Static build deployed via Vercel
+- **Backend:** Express server deployed as Vercel serverless function
+- **Single URL:** Frontend serves on root, API routes under `/api/*`
+- **Environment Variables:** Configured in Vercel dashboard
+
+**Setup:**
 ```bash
+# Backend
 cd backend
 npm install
-```
+# Create .env with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, JWT_SECRET
+npm start
 
-Create a `.env` file in the `backend/` directory:
-
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/task-manager
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:3000
-NODE_ENV=development
-```
-
-Run the backend:
-
-```bash
-npm run dev
-```
-
-Server will start at `http://localhost:5000`
-
-### Frontend Setup
-
-```bash
+# Frontend
 cd frontend
 npm install
 npm start
 ```
 
-App will open at `http://localhost:3000`
+**Environment Variables:**
+| Variable | Description | Required |
+|----------|-------------|----------|
+| SUPABASE_URL | Supabase project URL | Yes |
+| SUPABASE_SERVICE_ROLE_KEY | Supabase service role key | Yes |
+| JWT_SECRET | Secret for signing JWT tokens | Yes |
+| PORT | Server port (default: 5000) | No |
+| CORS_ORIGIN | Allowed CORS origin | No |
 
-## Environment Variables
+**Dark Mode:**
+- Toggle between light and dark themes
+- Theme preference persisted in localStorage
+- Respects system `prefers-color-scheme` on first visit
+- Smooth transitions across all components
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| PORT | Backend server port | 5000 |
-| MONGO_URI | MongoDB connection string | - |
-| JWT_SECRET | Secret for JWT signing | - |
-| JWT_EXPIRES_IN | Token expiration time | 7d |
-| CORS_ORIGIN | Allowed CORS origin | http://localhost:3000 |
-| NODE_ENV | Environment mode | development |
+**File Attachments:**
+- Upload images, PDFs, documents (jpeg, jpg, png, gif, pdf, doc, docx, xls, xlsx, txt, zip)
+- 10MB file size limit
+- View and remove attachments from tasks
 
-## API Endpoints
+**Mobile Responsiveness:**
+- All pages tested and optimized for mobile
+- Collapsible sidebar, responsive grids, touch-friendly controls
+
+---
+
+## API Endpoints (Complete)
 
 ### Authentication
-
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | `/api/auth/register` | Register new user | No |
-| POST | `/api/auth/login` | Login user | No |
+| POST | `/api/auth/login` | Login | No |
 | GET | `/api/auth/me` | Get current profile | Yes |
-| PUT | `/api/auth/me` | Update profile | Yes |
-| PUT | `/api/auth/me/password` | Update password | Yes |
-| POST | `/api/auth/forgot-password` | Reset password | No |
-| DELETE | `/api/auth/me` | Delete account | Yes |
+| PUT | `/api/auth/me` | Update profile (name, email, password) | Yes |
+| PUT | `/api/auth/me/password` | Update password with current verification | Yes |
+| POST | `/api/auth/forgot-password` | Reset password by email | No |
+| DELETE | `/api/auth/me` | Delete account (with password confirmation) | Yes |
 
 ### Tasks
-
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | `/api/tasks` | Create task | Yes |
-| GET | `/api/tasks` | Get all tasks (with search/filter) | Yes |
+| GET | `/api/tasks` | List tasks (search, status, priority filters) | Yes |
 | GET | `/api/tasks/:id` | Get single task | Yes |
 | PUT | `/api/tasks/:id` | Update task | Yes |
-| DELETE | `/api/tasks/:id` | Soft delete task | Yes |
-| GET | `/api/tasks/bin` | Get deleted tasks | Yes |
-| PUT | `/api/tasks/restore/:id` | Restore task | Yes |
-| DELETE | `/api/tasks/permanent/:id` | Permanent delete | Yes |
-| PUT | `/api/tasks/:id/share` | Share task with users | Yes |
-| GET | `/api/tasks/shared` | Get shared tasks | Yes |
-| POST | `/api/uploads/:id/attachments` | Upload attachment | Yes |
-| DELETE | `/api/uploads/:taskId/attachments/:attachmentId` | Remove attachment | Yes |
+| DELETE | `/api/tasks/:id` | Soft delete (move to bin) | Yes |
+| GET | `/api/tasks/bin` | List bin tasks | Yes |
+| PUT | `/api/tasks/restore/:id` | Restore from bin | Yes |
+| DELETE | `/api/tasks/permanent/:id` | Permanently delete | Yes |
+| PUT | `/api/tasks/:id/share` | Share task (creates copy for recipients) | Yes |
+| GET | `/api/tasks/shared` | Get tasks shared by current user | Yes |
 
 ### Notifications
-
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/notifications` | Get notifications | Yes |
-| PUT | `/api/notifications/:id/read` | Mark as read | Yes |
+| GET | `/api/notifications` | List notifications | Yes |
+| PUT | `/api/notifications/:id/read` | Mark single as read | Yes |
 | PUT | `/api/notifications/read-all` | Mark all as read | Yes |
-| DELETE | `/api/notifications/:id` | Delete notification | Yes |
+| DELETE | `/api/notifications/:id` | Delete single notification | Yes |
+| DELETE | `/api/notifications/clear-all` | Clear all notifications | Yes |
 | GET | `/api/notifications/unread-count` | Get unread count | Yes |
 
 ### Analytics
-
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/analytics/overview` | Get overview stats | Yes |
-| GET | `/api/analytics/trends` | Get trends and charts data | Yes |
+| GET | `/api/analytics/overview` | Dashboard statistics | Yes |
+| GET | `/api/analytics/trends` | Trend data for charts | Yes |
+
+### Uploads
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/uploads/:id/attachments` | Upload file attachment | Yes |
+| DELETE | `/api/uploads/:taskId/attachments/:attachmentId` | Remove attachment | Yes |
+
+---
 
 ## Authentication Flow
 
 1. User registers with fullname, email, password
-2. Password is hashed with bcrypt before storage
-3. On login, JWT token is generated and returned
-4. Token is stored in localStorage on frontend
-5. All API requests include token in Authorization header
-6. Backend middleware validates token on protected routes
-7. Token expires after configured duration (default: 7 days)
+2. Password is hashed with bcrypt (salt rounds: 10) before storing in Supabase
+3. On login, credentials verified against hashed password
+4. JWT token generated and returned to client
+5. Token stored in localStorage on frontend
+6. All API requests include token in `Authorization: Bearer <token>` header
+7. Backend middleware validates token on every protected route
+8. Auto-logout on 401 response via Axios interceptor
 
-## Socket.IO Setup
+---
 
-### Server Events
-- `join` - User joins their room with userId
-- `task_created` - Emitted when task is created
-- `task_updated` - Emitted when task is updated
-- `task_deleted` - Emitted when task is soft deleted
-- `task_restored` - Emitted when task is restored
-- `task_permanently_deleted` - Emitted on permanent delete
-- `new_notification` - Emitted for new notifications
+## Socket.IO Events
 
-### Client Events
-- Connects to server on authentication
-- Joins user room automatically
-- Listens for real-time events
-- Displays toast notifications for incoming events
+### Server → Client
+| Event | Payload | Trigger |
+|-------|---------|---------|
+| `new_notification` | `{ message, type, taskId }` | Task shared, status updated |
+| `task_created` | `{ id, title, ... }` | New task created |
+| `task_updated` | `{ id, title, status, ... }` | Task updated |
+| `task_deleted` | `taskId` | Task moved to bin |
+| `task_restored` | `taskId` | Task restored from bin |
+| `task_permanently_deleted` | `taskId` | Task permanently deleted |
 
-## Analytics Overview
+### Client → Server
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `join` | `userId` | Join user's notification room |
 
-The analytics dashboard provides:
-- **Real-time stats** - Total, completed, pending, overdue tasks
-- **Completion rate** - Percentage of completed tasks
-- **Weekly trends** - Task creation and completion over last 7 days
-- **Monthly trends** - Task trends over last 6 months
-- **Status pie chart** - Visual breakdown of task statuses
-- **Priority pie chart** - Visual breakdown of task priorities
-- **Summary cards** - Weekly and monthly creation/completion counts
-
-All analytics use MongoDB Aggregation Framework for optimized queries.
+---
 
 ## Folder Structure
 
 ```
 task-manager/
 ├── backend/
-│   ├── config/           # App configuration
-│   ├── controllers/      # Route handlers
+│   ├── config/              # Supabase client and app config
+│   ├── controllers/         # Route handlers
 │   │   ├── analyticsController.js
 │   │   ├── authController.js
 │   │   ├── notificationController.js
 │   │   ├── taskController.js
 │   │   └── uploadController.js
-│   ├── middleware/       # Auth and validation
-│   ├── models/           # Mongoose schemas
-│   ├── routes/           # API routes
-│   ├── services/         # Socket.IO service
-│   ├── utils/            # Error handling utilities
-│   ├── uploads/          # File attachments (gitignored)
-│   ├── .env.example      # Environment template
-│   ├── .gitignore
+│   ├── middleware/          # JWT auth and validation middleware
+│   ├── routes/              # Express route definitions
+│   ├── services/            # Socket.IO initialization
+│   ├── utils/               # Error handling utilities
+│   ├── uploads/             # File storage directory
+│   ├── .env                 # Environment variables
 │   ├── package.json
-│   └── server.js         # Entry point
+│   └── server.js            # Entry point
 ├── frontend/
-│   ├── public/           # Static assets
+│   ├── public/              # Static assets (index.html, favicon, manifest)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── layout/   # Header, Sidebar, MainLayout
-│   │   │   ├── pages/    # Dashboard, AllTasks, Analytics, etc.
-│   │   │   └── ui/       # Toast, modals
-│   │   ├── context/      # Theme and Notification contexts
-│   │   ├── services/     # API and Socket services
-│   │   ├── App.jsx       # Main app component
-│   │   ├── index.css     # Tailwind imports
-│   │   └── index.js      # Entry point
+│   │   │   ├── layout/      # Header, Sidebar, MainLayout
+│   │   │   ├── pages/       # Dashboard, AllTasks, AddTask, BinTask,
+│   │   │   │                # Analytics, Account, Profile, Notifications,
+│   │   │   │                # ForgotPassword
+│   │   │   └── ui/          # Toast, ConfirmModal, ShareModal
+│   │   ├── context/         # ThemeContext, NotificationContext
+│   │   ├── services/        # api.js (Axios), socketService.js
+│   │   ├── App.jsx          # Root component with routing
+│   │   ├── index.js         # React DOM entry
+│   │   └── index.css        # Tailwind directives
 │   ├── package.json
 │   ├── tailwind.config.js
 │   └── postcss.config.js
+├── package.json             # Root Vercel build script
+├── vercel.json              # Vercel deployment config
+├── .vercelignore
 └── README.md
 ```
 
-## Deployment
+---
 
-### Backend (Heroku/Railway/Render)
-1. Set environment variables in platform dashboard
-2. Connect GitHub repository
-3. Deploy - platform will run `npm install` and `npm start`
+## Deployment (Vercel)
 
-### Frontend (Vercel/Netlify)
-1. Set `REACT_APP_API_URL` to backend URL
-2. Connect GitHub repository
-3. Deploy - platform will run `npm install` and `npm run build`
+### Prerequisites
+1. GitHub account with repository pushed
+2. Vercel account (vercel.com)
+3. Supabase project (supabase.com)
 
-### Full Stack (Single Server)
-1. Build frontend: `cd frontend && npm run build`
-2. Serve `frontend/build` from Express static middleware
-3. Deploy entire project to single platform
+### Steps
+
+1. **Push code to GitHub:**
+   ```bash
+   git add .
+   git commit -m "initial commit"
+   git push
+   ```
+
+2. **Import to Vercel:**
+   - Go to [vercel.com](https://vercel.com) → Add New Project
+   - Import your GitHub repository
+   - Vercel auto-detects the monorepo config from `vercel.json`
+
+3. **Set environment variables in Vercel dashboard:**
+   ```
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   JWT_SECRET=your_jwt_secret_key
+   ```
+
+4. **Deploy:**
+   - Vercel builds frontend via root `package.json` build script
+   - Deploys `backend/server.js` as serverless function
+   - Routes `/api/*` → backend, everything else → frontend SPA
+
+### Limitations (Graceful Degradation on Serverless)
+- **Socket.IO** — Real-time notifications won't work on Vercel's serverless infrastructure (no persistent WebSocket connections). Falls back silently.
+- **File Uploads** — Uploaded files won't persist on Vercel's ephemeral filesystem.
+- **Everything else** (CRUD, auth, analytics, sharing) works normally.
+
+### Local Development
+```bash
+# Backend (terminal 1)
+cd backend
+npm install
+npm start          # Runs on http://localhost:5000
+
+# Frontend (terminal 2)
+cd frontend
+npm install
+npm start          # Runs on http://localhost:3000
+```
+
+---
 
 ## Screenshots
 
-[ADD SCREENSHOTS HERE]
-- Login/Register screen
-- Dashboard with stats
-- All Tasks view with search/filter
-- Analytics Dashboard with charts
-- Dark mode view
+*[Add screenshots here]*
+
+- Login / Register screen
+- Dashboard with task statistics
+- All Tasks view with search filter and pagination
+- Analytics Dashboard with pie charts and bar charts
+- Dark mode toggle
 - Mobile responsive view
+- Share task modal
+- Notifications panel
+
+---
 
 ## Links
 
-[ADD GITHUB REPOSITORY LINK HERE]
+- **GitHub Repository:** [ADD LINK HERE]
+- **Live Deployment:** [ADD LINK HERE]
+- **Video Walkthrough:** [ADD LINK HERE]
 
-[ADD GOOGLE DRIVE VIDEO LINK HERE]
+---
 
-[ADD LIVE DEPLOYMENT LINK HERE]
+## Final Submission Details
 
-## Future Improvements
+- **Phase 1 Deadline:** 28 April, 2026
+- **Phase 2 Deadline:** 25 May, 2026 — 11:59 PM PKT
+- **Deliverables:** GitHub repo (public) + recorded video + live deployment URL
 
-- [ ] Email notifications for task sharing
-- [ ] Drag and drop task reordering
-- [ ] Task categories/tags
-- [ ] Calendar view for due dates
-- [ ] Export tasks to CSV/PDF
-- [ ] Team/workspace management
-- [ ] Rich text editor for descriptions
-- [ ] Cloud storage integration (S3) for attachments
-- [ ] OAuth login (Google, GitHub)
-- [ ] Two-factor authentication
-- [ ] Task templates
-- [ ] Recurring tasks
-- [ ] Comments on tasks
-- [ ] Activity log/audit trail
+---
 
-## License
+## Evaluation Criteria
 
-MIT
+| Criteria | Details |
+|----------|---------|
+| Feature Implementation | Task sharing, notifications, analytics, dark mode, attachments |
+| Performance | Optimized backend queries, responsive frontend, fast API calls |
+| Documentation | Clear README, well-structured code |
+| Deployment | Smooth live deployment accessible via single URL |
