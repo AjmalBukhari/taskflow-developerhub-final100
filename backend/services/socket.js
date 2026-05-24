@@ -2,6 +2,12 @@ let io;
 const { Server } = require('socket.io');
 const config = require('../config/config');
 
+const noop = { emit() {} };
+const safeIo = {
+  to() { return noop; },
+  emit() {}
+};
+
 module.exports = {
   init: (httpServer) => {
     io = new Server(httpServer, {
@@ -10,7 +16,6 @@ module.exports = {
     return io;
   },
   getIO: () => {
-    if (!io) throw new Error('Socket.io not initialized');
-    return io;
+    return io || safeIo;
   }
 };

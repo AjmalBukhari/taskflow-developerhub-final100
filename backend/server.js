@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const http = require('http');
-const { init: initSocket } = require('./services/socket');
 const errorHandler = require('./utils/errorHandler');
 const taskRoutes = require('./routes/tasks');
 const authRoutes = require('./routes/auth');
@@ -12,9 +10,6 @@ const uploadRoutes = require('./routes/uploads');
 const path = require('path');
 
 const app = express();
-const server = http.createServer(app);
-const io = initSocket(server);
-const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -25,20 +20,26 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-  socket.on('join', (userId) => {
-    socket.join(userId);
-    console.log(`User ${userId} joined room`);
-  });
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
-
 app.use(errorHandler);
 
 if (require.main === module) {
+  const http = require('http');
+  const { init: initSocket } = require('./services/socket');
+  const server = http.createServer(app);
+  const io = initSocket(server);
+  const PORT = process.env.PORT || 5000;
+
+  io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    socket.on('join', (userId) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined room`);
+    });
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
+    });
+  });
+
   server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
