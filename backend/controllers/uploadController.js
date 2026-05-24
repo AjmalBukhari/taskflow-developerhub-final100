@@ -103,7 +103,7 @@ exports.getAttachments = async (req, res, next) => {
       .from('tasks')
       .select('id, attachments')
       .eq('id', req.params.taskId)
-      .or(`user_id.eq.${req.user.id}`)
+      .or(`user_id.eq.${req.user.id},owner.eq.${req.user.id}`)
       .eq('isDeleted', false)
       .single();
     if (!task) return next(AppError('Task not found or access denied', 404));
