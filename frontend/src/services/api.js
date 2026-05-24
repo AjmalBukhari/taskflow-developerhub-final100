@@ -48,18 +48,17 @@ export const getAnalyticsTrends = () => API.get('/analytics/trends');
 export const uploadAttachment = (taskId, formData) => API.post(`/uploads/${taskId}/attachments`, formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
+export const getAttachments = (taskId) => API.get(`/uploads/${taskId}/attachments`);
 export const removeAttachment = (taskId, attachmentId) => API.delete(`/uploads/${taskId}/attachments/${attachmentId}`);
-const getBaseUrl = () => {
-  const base = API.defaults.baseURL;
-  return base.endsWith('/api') ? base.replace('/api', '') : base;
-};
 export const downloadAttachment = (taskId, attachmentId) => {
+  const base = API.defaults.baseURL;
   const token = localStorage.getItem('token');
-  return `${getBaseUrl()}/uploads/${taskId}/attachments/${attachmentId}/download?token=${token}`;
+  return `${base}/uploads/${taskId}/attachments/${attachmentId}/download?token=${token}`;
 };
 export const previewAttachment = (taskId, attachmentId) => {
+  const base = API.defaults.baseURL;
   const token = localStorage.getItem('token');
-  return `${getBaseUrl()}/uploads/${taskId}/attachments/${attachmentId}/preview?token=${token}`;
+  return `${base}/uploads/${taskId}/attachments/${attachmentId}/preview?token=${token}`;
 };
 
 export default API;

@@ -122,7 +122,7 @@ export default function AllTasks({ showToast }) {
                     }`}>{task.status}</span>
                     <button onClick={() => setExpandedFile(expandedFile === task.id ? null : task.id)}
                       className={`text-sm ${expandedFile === task.id ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"}`}>
-                      Files ({task.attachments?.length || 0})
+                      Files
                     </button>
                     <button onClick={() => setEditingTask(task)} className="text-blue-500 dark:text-blue-400 text-sm">Edit</button>
                     <button onClick={() => setShareModal({ isOpen: true, taskId: task.id })}
@@ -132,11 +132,7 @@ export default function AllTasks({ showToast }) {
                 </motion.div>
                 {expandedFile === task.id && (
                   <div className="border-x border-b dark:border-gray-700 rounded-b-lg px-3 pb-3 -mt-1">
-                    <FileUpload taskId={task.id} attachments={task.attachments || []}
-                      onUpdate={(files) => {
-                        const updated = tasks.map(t => t.id === task.id ? { ...t, attachments: files } : t);
-                        setTasks(updated);
-                      }} showToast={showToast} />
+                    <FileUpload taskId={task.id} showToast={showToast} />
                   </div>
                 )}
               </div>

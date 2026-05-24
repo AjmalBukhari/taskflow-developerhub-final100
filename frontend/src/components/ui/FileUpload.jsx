@@ -1,9 +1,24 @@
-import { useState } from "react";
-import { uploadAttachment, removeAttachment, downloadAttachment, previewAttachment } from "../../services/api";
+import { useState, useEffect } from "react";
+import { uploadAttachment, getAttachments, removeAttachment, downloadAttachment, previewAttachment } from "../../services/api";
 
-export default function FileUpload({ taskId, attachments: initialAttachments = [], onUpdate, showToast }) {
-  const [attachments, setAttachments] = useState(initialAttachments);
+export default function FileUpload({ taskId, showToast }) {
+  const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAttachments = async () => {
+    try {
+      setLoading(true);
+      const { data } = await getAttachments(taskId);
+      setAttachments(data.data || []);
+    } catch {
+      showToast("Failed to load files", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchAttachments(); }, [taskId]);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -18,10 +33,8 @@ export default function FileUpload({ taskId, attachments: initialAttachments = [
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const { data } = await uploadAttachment(taskId, formData);
-      const updated = [...attachments, data.data];
-      setAttachments(updated);
-      onUpdate(updated);
+      await uploadAttachment(taskId, formData);
+      await fetchAttachments();
       showToast("File uploaded", "success");
     } catch (err) {
       const msg = err.response?.data?.message || "Upload failed";
@@ -35,9 +48,7 @@ export default function FileUpload({ taskId, attachments: initialAttachments = [
   const handleRemove = async (attachmentId) => {
     try {
       await removeAttachment(taskId, attachmentId);
-      const updated = attachments.filter(a => a.id !== attachmentId);
-      setAttachments(updated);
-      onUpdate(updated);
+      setAttachments(prev => prev.filter(a => a.id !== attachmentId));
       showToast("File removed", "success");
     } catch {
       showToast("Failed to remove file", "error");
@@ -60,7 +71,9 @@ export default function FileUpload({ taskId, attachments: initialAttachments = [
           <input type="file" onChange={handleUpload} disabled={uploading} className="hidden" />
         </label>
       </div>
-      {attachments.length > 0 && (
+      {loading ? (
+        <p className="text-xs text-gray-400">Loading files...</p>
+      ) : attachments.length > 0 ? (
         <div className="space-y-1">
           {attachments.map((att) => (
             <div key={att.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1.5 text-xs">
@@ -74,7 +87,7 @@ export default function FileUpload({ taskId, attachments: initialAttachments = [
                 )}
                 <div className="min-w-0">
                   <p className="truncate max-w-[150px] dark:text-gray-200">{att.filename}</p>
-                  {att.size && <p className="text-gray-400 dark:text-gray-500">{formatSize(att.size)}</p>}
+                  {att.size ? <p className="text-gray-400 dark:text-gray-500">{formatSize(att.size)}</p> : null}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -86,6 +99,8 @@ export default function FileUpload({ taskId, attachments: initialAttachments = [
             </div>
           ))}
         </div>
+      ) : (
+        <p className="text-xs text-gray-400 dark:text-gray-500">No files attached</p>
       )}
     </div>
   );
