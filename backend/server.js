@@ -43,4 +43,6 @@ if (require.main === module) {
   server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-module.exports = app;
+module.exports = (req, res) => {
+  return app(req, res);
+};
